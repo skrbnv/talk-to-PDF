@@ -4,6 +4,9 @@ Simple FastAPI/uvcorn microservice to process PDF and extract information using 
 
 ## Getting Started
 
+![alt text](/extras/chat.png)
+
+
 First, copy config_sample.yaml to config.yaml and update your API key.
 Inside you'll find settings, including:
 - model names for Completion and Embeddings
