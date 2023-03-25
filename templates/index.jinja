@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+        <title>Talk-to-PDF</title>
+    </head>
+    <body>
+        <div id="upload" style="display: {% if uploaded %}none{% else %}block{% endif %};">
+            <form id="upload_form">
+                    <input id="pdf_file" name="pdf_file" type="file" accept="application/pdf">
+                    <input type="submit" value="Submit">
+            </form>
+        </div>
+        <div id="chat" style="display: {% if uploaded %}block{% else %}none{% endif %};">
+            <div id="chat_output">
+            </div>
+            <div id="chat_input">
+                <form id="chat_form">
+                    <textarea name="query"></textarea>
+                    <input type="submit" value="Submit">
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function uploadFile() {
+                const fileInput = document.querySelector('#pdf_file');
+                const formData = new FormData();
+                formData.append('pdf_file', fileInput.files[0]);
+                const host = window.location.hostname;
+                const port = window.location.port;
+                fetch('http://'+host+':'+port+'/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    console.log(response);
+                    document.querySelector('#upload').style.display = 'none';
+                    document.querySelector('#chat').style.display = 'block';
+                    document.querySelector('#chat_form').requestSubmit();
+                })
+                .catch(error => {
+                    alert(error);
+                });
+            }
+            const uploadForm = document.querySelector('#upload_form');
+            uploadForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                uploadFile();
+            });
+        </script>
+
+        <script>
+            function createDivs(data) {
+                const outputDiv = document.querySelector('#chat_output');
+                outputDiv.innerHTML = "";
+
+                const div = document.createElement("div");
+                div.classList.add('metadata')
+                div.innerHTML = "<p>" + data.metadata + "</p>";
+                outputDiv.appendChild(div);
+                                
+                const extracts = data.extracts
+                for (let i = 0; i < extracts.length; i++) {
+                    const extract = extracts[i];
+                    const div = document.createElement("div");
+                    div.classList.add('extract')
+                    div.innerHTML = "<p>" + extract + "</p>";
+                    outputDiv.appendChild(div);
+                }
+                const messages = data.response
+                for (let i = 0; i < messages.length; i++) {
+                    const message = messages[i];
+                    const div = document.createElement("div");
+                    div.classList.add(message.role)
+                    div.innerHTML = "<p>" + message.content + "</p>";
+                    outputDiv.appendChild(div);
+                }
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
+            function chatMessage() {
+                const chatForm = document.querySelector('#chat_form');
+                const message = chatForm.querySelector('textarea[name="query"]').value;
+                const host = window.location.hostname;
+                const port = window.location.port;
+                const endpoint = 'http://'+host+':'+port+'/message/?query=' + encodeURIComponent(message);
+                fetch(endpoint)
+                    .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            throw new Error('Server has empty global context. Try reuploading PDF');
+                        } else {
+                            throw new Error('Network response was not ok');
+                        }
+                    }
+                    return response.json();
+                    })
+                    .then(data => {
+                        createDivs(data);
+                    })
+                    .catch(error => {
+                        const div = document.createElement("div");
+                        div.classList.add('error')
+                        div.innerHTML = "<p>" + error + "</p>";
+                        document.querySelector('#chat_output').appendChild(div)
+                    });
+            }
+            const chatForm = document.querySelector('#chat_form');
+            chatForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                chatMessage();
+            });
+        </script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function(){
+                if (document.querySelector('#chat').style.display === 'block') {
+                    document.querySelector('#chat_form').requestSubmit();
+                }
+            });
+        </script>        
+            
+
+        <style>
+            body {
+                position: relative;
+            }
+            #upload {
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 50%;
+                max-width: 300px;
+            }
+            #chat {
+                height: 90vh;
+                position: relative;
+                max-width: 600px;
+                margin: 0 auto;
+            }
+            #chat_output {
+                width: 100%;
+                height: 70vh;
+                overflow-y: auto;
+                background: rgba(0,0,0,0.1);
+                border-radius: 3px;
+            }
+            #chat_input {
+                width: 100%;
+                height: 18vh;
+                position: absolute;
+                bottom: 0;
+            }
+            #chat_output > div {
+                margin-top: 5px;
+            }
+            #chat_output p {
+                padding: 0;
+                margin: 0;
+            }
+            #chat_output .system {
+                display: none;
+            }
+            #chat_output .user {
+                text-align: right;
+            }
+            #chat_output .user p {
+                max-width: 90%;
+                font-size: 14px;
+                background-color:lightblue;
+                color: black;
+                display: inline-block;
+                padding: 3px 6px;
+                border-radius: 8px;
+                border-bottom-right-radius: 0;
+                position: relative;
+            }
+            #chat_output .user p:after {
+                content: "";
+                display: block;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-width: 0 8px 8px 0;
+                border-color: transparent lightblue transparent transparent;
+                position: absolute;
+                right: 0;
+                top: 100%;
+            }
+            #chat_output .assistant p {
+                max-width: 90%;
+                font-size: 14px;
+                background-color: lightseagreen;
+                color: black;
+                display: inline-block;
+                padding: 3px 6px;
+                border-radius: 8px;
+                border-bottom-left-radius: 0;
+                position: relative;
+            }
+            #chat_output .assistant p:after {
+                content: "";
+                display: block;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-width: 8px 8px 0 0;
+                border-color: lightseagreen transparent transparent transparent ;
+                position: absolute;
+                left: 0;
+                top: 100%;
+            }
+            #chat_output .extract {
+                font-size: 12px;
+                line-height: 1.1;
+                opacity: 0.3;
+                width: 100%;
+                max-width: 180px;
+                display: inline-block;
+                margin: 2px;
+                padding: 5px;
+                border: 1px solid white;
+                border-radius: 3px;
+                transition: opacity 0.5s ease-out;
+            }
+            #chat_output .extract:hover {
+                opacity: 1;
+            }
+            #chat_output .error {
+                text-align: center;
+            }
+            #chat_output .error p {
+                max-width: 90%;
+                font-size: 14px;
+                background-color: lightcoral;
+                color: black;
+                display: inline-block;
+                padding: 3px 6px;
+                border-radius: 8px;
+                position: relative;
+            }
+            #chat_output .metadata {
+                font-size: 13px;
+                line-height: 1.1;
+                opacity: 0.3;
+                width: 90%;
+                display: inline-block;
+                margin: 2px;
+                padding: 5px;
+                transition: opacity 0.5s ease-out;
+            }
+            #chat_output .metadata:hover {
+                opacity: 1;
+            }
+        </style>
+
+    </body>
+</html>

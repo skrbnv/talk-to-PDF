@@ -1,0 +1,8 @@
+API_KEY:           your_OpenAI_API_key 
+model:             gpt-3.5-turbo-0301       # Model name to extract relevant information
+model_embeddings:  text-embedding-ada-002   # Model name to compute embeddings
+target_chunk_size: 128                      # Desirable chunk length in tokens
+request_delay_embeddings: 1                 # time in sec between requests
+top_k_extracts:    3
+
+cache_dir:         ./cache                  # Directory to store embeddings and extracted text for previously uploaded PDFs
